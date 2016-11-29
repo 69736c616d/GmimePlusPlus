@@ -108,20 +108,3 @@ int GmimePP::getAllRecipients(std::vector<SHeaderValue> &vRes) const
 	}
 	return 0;   
 }
-
-int main()
-{
-    using namespace std;
-    GmimePP gpp("/home/iyasar/Desktop/test3.eml");
-    std::vector<SHeaderValue> vHeaderValuePairs;
-    
-    gpp.init();
-    
-    gpp.getRecipientsByType(GMIME_RECIPIENT_TYPE_CC, vHeaderValuePairs);
-    
-    
-    for (auto el : vHeaderValuePairs)
-        cout << el.name << "->" << el.value << endl;
-    
-    return 0;
-}
