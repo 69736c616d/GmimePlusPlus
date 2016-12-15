@@ -1,3 +1,9 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
 #include "GmimePP.hpp"
 #include <iostream>
 
@@ -67,6 +73,9 @@ int GmimePP::getRecipientsByType(GMimeRecipientType type, std::vector<SHeaderVal
 	const char *name = nullptr, *value = nullptr;
 
 	InternetAddressList *rcptsList = g_mime_message_get_recipients (m_gmessage, type);
+        
+        if (rcptsList == nullptr)
+            return 0;
 
 	internet_address_list_to_string (rcptsList, TRUE);
 	int size = internet_address_list_length(rcptsList);
@@ -107,4 +116,60 @@ int GmimePP::getAllRecipients(std::vector<SHeaderValue> &vRes) const
 		}
 	}
 	return 0;   
+}
+
+
+int GmimePP::getAttachmentMimeParts(std::vector<GMimeObject *> &attachmentMimeParts) const
+{
+    GMimePartIter *it = g_mime_part_iter_new((GMimeObject *)m_gmessage);
+    
+    if (g_mime_part_iter_is_valid (it)) {
+        while(g_mime_part_iter_next (it)) {
+            GMimeObject *part = g_mime_part_iter_get_current (it);
+            if (GMIME_IS_PART(part) ||GMIME_IS_MESSAGE_PART (part) || GMIME_IS_MESSAGE_PARTIAL (part)) {
+                attachmentMimeParts.push_back(part);
+            }           
+        }
+    }
+    
+    g_mime_part_iter_free(it);
+    
+    return 0;
+}
+
+int GmimePP::saveAttachments(const std::string &path) const
+{
+    int fd;
+    std::vector<GMimeObject *> attachmentMimeParts;
+    std::string filenameWithPath(path + "/");
+    
+    getAttachmentMimeParts(attachmentMimeParts);
+    
+    for (int i= 0; i < attachmentMimeParts.size(); i++) {
+        GMimeDataWrapper *content;
+        
+	const char *filename;
+	GMimeStream *stream;
+        filename = g_mime_part_get_filename ((GMimePart *)attachmentMimeParts[i]);
+        
+        if (filename != nullptr)
+            filenameWithPath.append(filename);
+        else
+            continue;
+            
+        if ((fd = open (filenameWithPath.c_str(), O_CREAT | O_WRONLY, 0755)) == -1)
+            return -1;
+	
+	stream = g_mime_stream_fs_new (fd);
+	
+	content = g_mime_part_get_content_object ((GMimePart *)attachmentMimeParts[i]);
+	g_mime_data_wrapper_write_to_stream (content, stream);
+	g_mime_stream_flush (stream);
+	
+	g_object_unref (content);
+	g_object_unref (stream);  
+	close(fd);     
+    }
+    
+    return 0;
 }

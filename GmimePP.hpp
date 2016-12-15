@@ -56,6 +56,8 @@ public:
     
 private:
   GmimePP(const GmimePP& orig) = delete;
+  int getAttachmentMimeParts(std::vector<GMimeObject *> &) const;
+  
   inline bool isFileExist () 
   {
     struct stat buffer;   
