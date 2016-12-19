@@ -1,9 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 #include "GmimePP.hpp"
 #include <iostream>
 
@@ -42,6 +36,22 @@ int GmimePP::getHeader(const std::string &headerName, std::string &value) const
     return 0;
 }
 
+std::string GmimePP::getHeader(const std::string &headerName) const
+{
+    std::string ret;
+    const char *val = g_mime_object_get_header((GMimeObject *) m_gmessage, headerName.c_str());
+
+    if (val == nullptr) {
+            return "";
+    }
+
+    char* decodedValue = g_mime_utils_header_decode_text(val);
+    ret.assign(decodedValue);
+    g_free(decodedValue);
+    return ret;
+}
+
+
 int  GmimePP::getHeaders(std::vector<SHeaderValue> &vHeaderValuePairs) const
 {
 	const char *name = nullptr, *value = nullptr;
@@ -66,6 +76,51 @@ int  GmimePP::getHeaders(std::vector<SHeaderValue> &vHeaderValuePairs) const
 	} while(g_mime_header_iter_next (&it));
         
 	return 0;
+}
+
+int GmimePP::setHeader(const std::string &header, const std::string &newValue)
+{
+	int fd;
+        
+	if ((fd = open(m_mailPath.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0777)) == -1) {
+            return -1;
+	}	      
+        
+        char* encValue = g_mime_utils_header_encode_text(newValue.c_str());
+        
+        g_mime_object_set_header(GMIME_OBJECT (m_gmessage), header.c_str(), encValue);
+        
+	GMimeStream *gstream = g_mime_stream_fs_new (fd);
+	if (g_mime_object_write_to_stream (GMIME_OBJECT (m_gmessage), gstream) < 0) {          
+            g_free(encValue);
+            g_object_unref (gstream);
+            return -1;
+        }
+        
+	g_mime_stream_flush (gstream);
+	g_object_unref (gstream);
+	g_free(encValue);   
+        close(fd);
+	return 0;      
+}
+
+std::string GmimePP::getFromAdress() const
+{
+    InternetAddressList *list;
+    const char *nameAndAdress = g_mime_message_get_sender(m_gmessage);
+    list = internet_address_list_parse_string (nameAndAdress);
+    
+    if (list) {
+        InternetAddress *address = internet_address_list_get_address (list, 0);
+        if (address) {                        
+            InternetAddressMailbox *mailbox;
+            mailbox = INTERNET_ADDRESS_MAILBOX (address);
+            
+            return internet_address_mailbox_get_addr(mailbox);
+        }
+    }
+  
+    return "";   
 }
 
 int GmimePP::getRecipientsByType(GMimeRecipientType type, std::vector<SHeaderValue> &vRes) const
@@ -167,8 +222,8 @@ int GmimePP::saveAttachments(const std::string &path) const
 	g_mime_stream_flush (stream);
 	
 	g_object_unref (content);
-	g_object_unref (stream);  
-	close(fd);     
+	g_object_unref (stream);     
+        close(fd);
     }
     
     return 0;

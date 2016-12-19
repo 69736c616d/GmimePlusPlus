@@ -48,8 +48,11 @@ public:
 
 public:
     int init();
-    int getHeader(const std::string &, std::string &) const;
+    int getHeader(const std::string &header, std::string &value) const;
+    std::string getHeader(const std::string &header) const;
+    int setHeader(const std::string &header, const std::string &newValue);
     int getHeaders(std::vector<SHeaderValue> &) const;
+    std::string getFromAdress() const;
     int getRecipientsByType(GMimeRecipientType, std::vector<SHeaderValue> &) const;
     int getAllRecipients(std::vector<SHeaderValue> &) const;
     int saveAttachments(const std::string &) const;
@@ -72,4 +75,5 @@ private:
 };
 
 #endif /* GMIMEPP_HPP */
+
 
