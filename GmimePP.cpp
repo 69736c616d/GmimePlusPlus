@@ -54,54 +54,92 @@ std::string GmimePP::getHeader(const std::string &headerName) const
 
 int  GmimePP::getHeaders(std::vector<SHeaderValue> &vHeaderValuePairs) const
 {
-	const char *name = nullptr, *value = nullptr;
-	GMimeHeaderIter it;
+    const char *name = nullptr, *value = nullptr;
+    GMimeHeaderIter it;
 
-	GMimeHeaderList *headerList = g_mime_object_get_header_list(((GMimeObject *) m_gmessage));
-	if (!headerList)
-            return -1;
+    GMimeHeaderList *headerList = g_mime_object_get_header_list(((GMimeObject *) m_gmessage));
+    if (!headerList)
+        return -1;
 
-	if (!g_mime_header_list_get_iter (headerList, &it))
-            return -1;
+    if (!g_mime_header_list_get_iter (headerList, &it))
+        return -1;
 
-	do {
-            if (!g_mime_header_iter_is_valid (&it))
-                    break;
-            name = g_mime_header_iter_get_name (&it);
-            value = g_mime_header_iter_get_value (&it);
+    do {
+        if (!g_mime_header_iter_is_valid (&it))
+                break;
+        name = g_mime_header_iter_get_name (&it);
+        value = g_mime_header_iter_get_value (&it);
 
-            SHeaderValue m {(name != NULL) ? name : "", (value != NULL) ? value : ""};
-            vHeaderValuePairs.push_back(m);
+        SHeaderValue m {(name != NULL) ? name : "", (value != NULL) ? value : ""};
+        vHeaderValuePairs.push_back(m);
 
-	} while(g_mime_header_iter_next (&it));
-        
-	return 0;
+    } while(g_mime_header_iter_next (&it));
+
+    return 0;
 }
 
-int GmimePP::setHeader(const std::string &header, const std::string &newValue)
+int GmimePP::addHeader(const std::string header, const std::string value)
 {
-	int fd;
-        
-	if ((fd = open(m_mailPath.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0777)) == -1) {
-            return -1;
-	}	      
-        
-        char* encValue = g_mime_utils_header_encode_text(newValue.c_str());
-        
-        g_mime_object_set_header(GMIME_OBJECT (m_gmessage), header.c_str(), encValue);
-        
-	GMimeStream *gstream = g_mime_stream_fs_new (fd);
-	if (g_mime_object_write_to_stream (GMIME_OBJECT (m_gmessage), gstream) < 0) {          
-            g_free(encValue);
-            g_object_unref (gstream);
-            return -1;
-        }
-        
-	g_mime_stream_flush (gstream);
-	g_object_unref (gstream);
-	g_free(encValue);   
+    int fd;
+    
+    if(remove(m_mailPath.c_str()) != 0) {
+       return -1;
+    }
+
+    if ((fd = open(m_mailPath.c_str(), O_CREAT | O_RDWR, 0777)) == -1) {
+        return -1;
+    }	      
+
+    char* encValue = g_mime_utils_header_encode_text(value.c_str());
+
+    g_mime_object_append_header(GMIME_OBJECT (m_gmessage), header.c_str(), encValue);
+
+    GMimeStream *gstream = g_mime_stream_fs_new (fd);
+    if (g_mime_object_write_to_stream (GMIME_OBJECT (m_gmessage), gstream) < 0) {   
+        g_free(encValue);
+        g_object_unref (gstream);
         close(fd);
-	return 0;      
+        return -1;
+    }
+
+    g_mime_stream_flush (gstream);
+    g_object_unref (gstream);
+    g_free(encValue);   
+    close(fd);
+    return 0;   
+    
+}
+
+
+int GmimePP::setHeader(const std::string header, const std::string newValue)
+{
+    int fd;
+
+    if(remove(m_mailPath.c_str()) != 0) {
+        return -1;
+    }
+
+    if ((fd = open(m_mailPath.c_str(), O_CREAT | O_RDWR, 0777)) == -1) {
+        return -1;
+    }	      
+
+    char* encValue = g_mime_utils_header_encode_text(newValue.c_str());
+
+    g_mime_object_set_header(GMIME_OBJECT (m_gmessage), header.c_str(), encValue);
+
+    GMimeStream *gstream = g_mime_stream_fs_new (fd);
+    if (g_mime_object_write_to_stream (GMIME_OBJECT (m_gmessage), gstream) < 0) {          
+        g_free(encValue);
+        g_object_unref (gstream);
+        close(fd);
+        return -1;
+    }
+
+    g_mime_stream_flush (gstream);
+    g_object_unref (gstream);
+    g_free(encValue);   
+    close(fd);
+    return 0;      
 }
 
 std::string GmimePP::getFromAdress() const
@@ -228,3 +266,4 @@ int GmimePP::saveAttachments(const std::string &path) const
     
     return 0;
 }
+
