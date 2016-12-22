@@ -78,7 +78,7 @@ int  GmimePP::getHeaders(std::vector<SHeaderValue> &vHeaderValuePairs) const
     return 0;
 }
 
-int GmimePP::addHeader(const std::string header, const std::string value)
+int GmimePP::addHeader(const std::string &header, const std::string &value) const
 {
     int fd;
     
@@ -111,7 +111,7 @@ int GmimePP::addHeader(const std::string header, const std::string value)
 }
 
 
-int GmimePP::setHeader(const std::string header, const std::string newValue)
+int GmimePP::setHeader(const std::string &header, const std::string &newValue) const
 {
     int fd;
 
@@ -266,4 +266,14 @@ int GmimePP::saveAttachments(const std::string &path) const
     
     return 0;
 }
+
+std::string GmimePP::getBody() const
+{
+    GMimeObject *gBody = g_mime_message_get_body (m_gmessage);
+    char *bodyStr = g_mime_object_to_string(gBody);
+    std::string messageBody = (bodyStr == NULL) ? "" : bodyStr;
+    g_free (bodyStr);
+    return messageBody;   
+}
+
 

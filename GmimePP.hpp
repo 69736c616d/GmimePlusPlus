@@ -50,10 +50,11 @@ public:
     int init();
     int getHeader(const std::string &header, std::string &value) const;
     std::string getHeader(const std::string &header) const;
-    int addHeader(const std::string header, const std::string value);
-    int setHeader(const std::string header, const std::string newValue);
+    int addHeader(const std::string &header, const std::string &value) const;
+    int setHeader(const std::string &header, const std::string &newValue) const;
     int getHeaders(std::vector<SHeaderValue> &) const;
     std::string getFromAdress() const;
+    std::string getBody() const;
     int getRecipientsByType(GMimeRecipientType, std::vector<SHeaderValue> &) const;
     int getAllRecipients(std::vector<SHeaderValue> &) const;
     int saveAttachments(const std::string &) const;
