@@ -269,11 +269,20 @@ int GmimePP::saveAttachments(const std::string &path) const
 
 std::string GmimePP::getBody() const
 {
+    std::string messageBody;
     GMimeObject *gBody = g_mime_message_get_body (m_gmessage);
     char *bodyStr = g_mime_object_to_string(gBody);
-    std::string messageBody = (bodyStr == NULL) ? "" : bodyStr;
+    
+    if (bodyStr == nullptr) {
+        g_free (bodyStr);
+        return "";
+    }
+    
+    else
+        messageBody.assign(bodyStr);
+  
     g_free (bodyStr);
-    return messageBody;   
+    return messageBody;     
 }
 
 
