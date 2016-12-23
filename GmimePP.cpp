@@ -278,9 +278,7 @@ std::string GmimePP::getBody() const
         return "";
     }
     
-    else
-        messageBody.assign(bodyStr);
-  
+    messageBody.assign(bodyStr);
     g_free (bodyStr);
     return messageBody;     
 }
