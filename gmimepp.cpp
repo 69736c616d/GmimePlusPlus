@@ -145,9 +145,9 @@ int GmimePP::setHeader(const std::string &header, const std::string &newValue) c
 std::string GmimePP::getFromAdress() const
 {
   std::string ret;
-  InternetAddressList *list;
+
   const char *nameAndAdress = g_mime_message_get_sender(m_gmessage);
-  list = internet_address_list_parse_string (nameAndAdress);
+  InternetAddressList *list = internet_address_list_parse_string (nameAndAdress);
 
   if (list) {
       InternetAddress *address = internet_address_list_get_address (list, 0);
@@ -170,10 +170,9 @@ int GmimePP::getRecipientsByType(GMimeRecipientType type, std::vector<SHeaderVal
 
 	InternetAddressList *rcptsList = g_mime_message_get_recipients (m_gmessage, type);
 
-        if (rcptsList == nullptr)
-            return 0;
+  if (rcptsList == nullptr)
+      return 0;
 
-	internet_address_list_to_string (rcptsList, TRUE);
 	int size = internet_address_list_length(rcptsList);
 
 	for(int i = 0; i < size; i++) {
@@ -211,6 +210,8 @@ int GmimePP::getAllRecipients(std::vector<SHeaderValue> &vRes) const
                             vRes.push_back(SHeaderValue({name == nullptr ? "" : name, value}));
 		}
 	}
+
+  g_object_unref(rcptsList);
 	return 0;
 }
 
@@ -222,18 +223,18 @@ int GmimePP::saveAttachments(const std::string &path) const
     {
         GMimeObject *part = g_mime_part_iter_get_current (iter);
 
-        GMimeContentDisposition *disp = NULL;
+        GMimeContentDisposition *disp = nullptr;
         disp = g_mime_object_get_content_disposition(part);
 
-        if ((disp != NULL) &&
+        if ((disp != nullptr) &&
             (!g_ascii_strcasecmp(disp->disposition, "attachment"))){
 
                 char *aname = (char *) g_mime_object_get_content_disposition_parameter(part,
                                                                                        "filename");
-                if (aname == NULL)
+                if (aname == nullptr)
                     aname = (char *) g_mime_object_get_content_type_parameter(part, "name");
 
-                if (aname == NULL)
+                if (aname == nullptr)
                     continue;
 
                 char out[1024] = { '\0' };
@@ -260,18 +261,14 @@ int GmimePP::saveAttachments(const std::string &path) const
     return 0;
 }
 
-std::string GmimePP::getBody() const
+std::string GmimePP::getBodyHTML() const
 {
-    std::string messageBody;
-    GMimeObject *gBody = g_mime_message_get_body (m_gmessage);
-    char *bodyStr = g_mime_object_to_string(gBody);
+      //to be implemented
+      return "";
+}
 
-    if (bodyStr == nullptr) {
-        g_free (bodyStr);
-        return "";
-    }
-
-    messageBody.assign(bodyStr);
-    g_free (bodyStr);
-    return messageBody;
+std::string GmimePP::getBodyText() const
+{
+    //to be implemented
+    return "";
 }
