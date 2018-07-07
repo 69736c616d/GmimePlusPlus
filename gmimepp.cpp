@@ -7,14 +7,14 @@ int GmimePP::init()
     if (!isFileExist())
         return -1;
 
-    g_mime_init(0);
+    g_mime_init(GMIME_ENABLE_RFC2047_WORKAROUNDS);
 
-    if ((m_fd = open(m_mailPath.c_str(), O_RDWR)) == -1) {
-            g_mime_shutdown ();
-            return -1;
+    int fd;
+    if ((fd = open(m_mailPath.c_str(), O_RDWR)) == -1) {
+        return -1;
     }
 
-    GMimeStream *gstream = g_mime_stream_fs_new (m_fd);
+    GMimeStream *gstream = g_mime_stream_fs_new (fd);
     GMimeParser *gparser = g_mime_parser_new ();
     g_mime_parser_init_with_stream (gparser, gstream);
     m_gmessage = g_mime_parser_construct_message (gparser);
@@ -24,6 +24,8 @@ int GmimePP::init()
 
     g_object_unref (gstream);
     g_object_unref (gparser);
+    m_fds.push_back(fd);
+
     return 0;
 }
 
@@ -83,20 +85,18 @@ int  GmimePP::getHeaders(std::vector<SHeaderValue> &vHeaderValuePairs) const
     return 0;
 }
 
-int GmimePP::addHeader(const std::string &header, const std::string &value) const
+int GmimePP::addHeader(const std::string &header, const std::string &value)
 {
-    char* encValue = g_mime_utils_header_encode_text(value.c_str());
-
-    g_mime_object_append_header(GMIME_OBJECT (m_gmessage), header.c_str(), encValue);
-
-    int fd = open(m_mailPath.c_str(), O_RDWR | O_TRUNC);
+    int fd = open((m_mailPath + ".copy").c_str(), O_CREAT | O_RDWR);
     if (fd < 0) {
-        g_free(encValue);
         return -1;
     }
 
+    char* encValue = g_mime_utils_header_encode_text(value.c_str());
+    g_mime_object_append_header(GMIME_OBJECT (m_gmessage), header.c_str(), encValue);
+
     GMimeStream *gstream = g_mime_stream_fs_new(fd);
-    g_mime_stream_fs_set_owner (GMIME_STREAM_FS(gstream), false);
+    g_mime_stream_fs_set_owner (GMIME_STREAM_FS(gstream), FALSE);
 
     if (g_mime_object_write_to_stream (GMIME_OBJECT (m_gmessage), gstream) < 0) {
         g_free(encValue);
@@ -108,25 +108,26 @@ int GmimePP::addHeader(const std::string &header, const std::string &value) cons
     g_mime_stream_flush (gstream);
     g_object_unref (gstream);
     g_free(encValue);
-    close(fd);
+    m_fds.push_back(fd);
+
+    std::remove(m_mailPath.c_str());
+    std::rename((m_mailPath + ".copy").c_str(), m_mailPath.c_str());
     return 0;
 }
 
 
-int GmimePP::setHeader(const std::string &header, const std::string &newValue) const
+int GmimePP::setHeader(const std::string &header, const std::string &newValue)
 {
-
-    int fd = open(m_mailPath.c_str(), O_RDWR | O_TRUNC);
-    if (fd < 0)
+    int fd = open((m_mailPath + ".copy").c_str(), O_CREAT | O_RDWR);
+    if (fd < 0) {
         return -1;
+    }
 
     char* encValue = g_mime_utils_header_encode_text(newValue.c_str());
 
     g_mime_object_set_header(GMIME_OBJECT (m_gmessage), header.c_str(), encValue);
-
-
     GMimeStream *gstream = g_mime_stream_fs_new(fd);
-    g_mime_stream_fs_set_owner (GMIME_STREAM_FS(gstream), false);
+    g_mime_stream_fs_set_owner (GMIME_STREAM_FS(gstream), FALSE);
 
     if (g_mime_object_write_to_stream (GMIME_OBJECT (m_gmessage), gstream) < 0) {
         g_free(encValue);
@@ -138,7 +139,10 @@ int GmimePP::setHeader(const std::string &header, const std::string &newValue) c
     g_mime_stream_flush (gstream);
     g_object_unref (gstream);
     g_free(encValue);
-    close(fd);
+    m_fds.push_back(fd);
+
+    std::remove(m_mailPath.c_str());
+    std::rename((m_mailPath + ".copy").c_str(), m_mailPath.c_str());
     return 0;
 }
 

@@ -27,6 +27,8 @@
 #include <vector>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <fstream>
+#include <cstdio>
 
 struct SHeaderValue
 {
@@ -44,15 +46,16 @@ public:
     {
       g_mime_shutdown();
       g_object_unref(m_gmessage);
-      close(m_fd);
+      for (auto fd : m_fds)
+          close(fd);
     };
 
 public:
     int init();
     int getHeader(const std::string &header, std::string &value) const;
     std::string getHeader(const std::string &header) const;
-    int addHeader(const std::string &header, const std::string &value) const;
-    int setHeader(const std::string &header, const std::string &newValue) const;
+    int addHeader(const std::string &header, const std::string &value);
+    int setHeader(const std::string &header, const std::string &newValue);
     int getHeaders(std::vector<SHeaderValue> &) const;
     std::string getFromAdress() const;
     std::string getBodyHTML() const;
@@ -73,7 +76,7 @@ private:
 private:
     std::string     m_mailPath;
     GMimeMessage   *m_gmessage;
-    int m_fd;
+    std::vector<int> m_fds;
 };
 
 #endif /* GMIMEPP_HPP */

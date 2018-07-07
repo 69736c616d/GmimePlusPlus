@@ -18,8 +18,7 @@ int main(int argc, char const *argv[])
       cout << "Subject: " << gpp.getHeader("Subject") << endl;
       cout << "Message-ID: " << gpp.getHeader("Message-ID") << endl;
 
-      if (gpp.addHeader("header1", "value1") == -1)
-          cout <<"-1" << endl;
+      gpp.addHeader("header1", "value1");
 
       gpp.setHeader("header1", "value2");
 
@@ -43,10 +42,13 @@ int main(int argc, char const *argv[])
           cout << "rcptbytype" <<rcpt.name << "-" << rcpt.value << endl;
 
       cout << gpp.getFromAdress() << endl;
-      sleep(0.1);
+
+      //getchar();
+      //sleep(0.1);
+
   //}
 
-      gpp.saveAttachments("/home/iyasar/gmimetest/GmimePlusPlus");
+      //gpp.saveAttachments("/home/iyasar/gmimetest/GmimePlusPlus");
 
 
   return 0;
